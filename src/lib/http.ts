@@ -115,7 +115,8 @@ export interface RequestResult {
 
 export async function executeRequest(
   request: ApiRequest,
-  envVars: Record<string, string>
+  envVars: Record<string, string>,
+  proxyUrl = '/api/proxy'
 ): Promise<RequestResult> {
   const { envUpdates: preEnvUpdates } = runScript(request.preRequestScript, { request, env: envVars });
   const mergedVars = { ...envVars, ...preEnvUpdates };
@@ -147,7 +148,7 @@ export async function executeRequest(
       raw.headers.forEach((value, key) => { responseHeaders[key] = value; });
       responseText = await raw.text();
     } else {
-      const proxyRes = await fetch('/api/proxy', {
+      const proxyRes = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: resolvedUrl, method: request.method, headers: sentHeaders, body }),

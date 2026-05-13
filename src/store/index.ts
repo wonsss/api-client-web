@@ -97,6 +97,8 @@ interface AppState {
   // ui actions
   setShowEnvManager: (show: boolean) => void;
   setShowHistory: (show: boolean) => void;
+  useLocalProxy: boolean;
+  setUseLocalProxy: (use: boolean) => void;
 
   // selectors
   getActiveRequest: () => ApiRequest | null;
@@ -120,6 +122,7 @@ export const useAppStore = create<AppState>()(
       isLoading: false,
       showEnvManager: false,
       showHistory: false,
+      useLocalProxy: false,
 
       addCollection: (name) =>
         set((s) => ({
@@ -245,6 +248,7 @@ export const useAppStore = create<AppState>()(
       setLoading: (isLoading) => set({ isLoading }),
       setShowEnvManager: (showEnvManager) => set({ showEnvManager }),
       setShowHistory: (showHistory) => set({ showHistory }),
+      setUseLocalProxy: (useLocalProxy) => set({ useLocalProxy }),
 
       getActiveRequest: () => {
         const { collections, activeCollectionId, activeRequestId } = get();

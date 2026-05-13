@@ -27,6 +27,8 @@ export function RequestPanel() {
   const environments = useAppStore((s) => s.environments);
   const activeEnvironmentId = useAppStore((s) => s.activeEnvironmentId);
   const isLoading = useAppStore((s) => s.isLoading);
+  const useLocalProxy = useAppStore((s) => s.useLocalProxy);
+  const setUseLocalProxy = useAppStore((s) => s.setUseLocalProxy);
   const { updateRequest, setResponse, setResolvedUrl, setSentHeaders, setCurlCommand, setTestResults, setLoading, pushHistory } = useAppStore();
 
   const request = useMemo(
@@ -87,7 +89,8 @@ export function RequestPanel() {
     setCurlCommand(null);
     setTestResults([]);
     try {
-      const { response, testResults, resolvedUrl, sentHeaders, curlCommand } = await executeRequest(request, envVars);
+      const proxyUrl = useLocalProxy ? 'http://localhost:7777' : '/api/proxy';
+      const { response, testResults, resolvedUrl, sentHeaders, curlCommand } = await executeRequest(request, envVars, proxyUrl);
       setResponse(response);
       setResolvedUrl(resolvedUrl);
       setSentHeaders(sentHeaders);
@@ -165,6 +168,13 @@ export function RequestPanel() {
           className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold px-4 py-1.5 rounded transition-colors"
         >
           {isLoading ? '...' : 'Send'}
+        </button>
+        <button
+          title={useLocalProxy ? 'Local proxy ON (localhost:7777)' : 'Local proxy OFF (Vercel)'}
+          onClick={() => setUseLocalProxy(!useLocalProxy)}
+          className={`text-xs px-2 py-1.5 rounded border transition-colors ${useLocalProxy ? 'bg-yellow-600 border-yellow-500 text-white' : 'bg-gray-800 border-gray-600 text-gray-400 hover:text-gray-200'}`}
+        >
+          {useLocalProxy ? '⚡ Local' : '☁ Cloud'}
         </button>
       </div>
 
