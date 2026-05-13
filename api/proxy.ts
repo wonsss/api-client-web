@@ -1,12 +1,10 @@
-export const config = { runtime: 'edge' };
-
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { url, method, headers, body } = await req.json() as {
+    const { url, method, headers, body } = req.body as {
       url: string;
       method: string;
       headers: Record<string, string>;
@@ -21,23 +19,17 @@ export default async function handler(req: Request): Promise<Response> {
 
     const text = await upstream.text();
     const responseHeaders: Record<string, string> = {};
-    upstream.headers.forEach((value, key) => {
+    upstream.headers.forEach((value: string, key: string) => {
       responseHeaders[key] = value;
     });
 
-    return new Response(
-      JSON.stringify({
-        status: upstream.status,
-        statusText: upstream.statusText,
-        headers: responseHeaders,
-        body: text,
-      }),
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(200).json({
+      status: upstream.status,
+      statusText: upstream.statusText,
+      headers: responseHeaders,
+      body: text,
+    });
   } catch (e) {
-    return new Response(
-      JSON.stringify({ error: String(e) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(500).json({ error: String(e) });
   }
 }
