@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useAppStore } from '../store';
 import { KeyValueEditor } from './KeyValueEditor';
+import { extractCollectionVars } from '../lib/utils';
 
 export function EnvManager() {
-  const { environments, addEnvironment, removeEnvironment, updateEnvironment, setShowEnvManager } = useAppStore();
+  const { environments, collections, addEnvironment, removeEnvironment, updateEnvironment, setShowEnvManager } = useAppStore();
+  const detectedVars = extractCollectionVars(collections);
   const [selectedId, setSelectedId] = useState<string | null>(environments[0]?.id ?? null);
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
@@ -96,6 +99,42 @@ export function EnvManager() {
                   keyPlaceholder="VARIABLE_NAME"
                   valuePlaceholder="value"
                 />
+                {(() => {
+                  const existingKeys = new Set(selected.variables.map((v) => v.key));
+                  const missing = detectedVars.filter((v) => !existingKeys.has(v));
+                  if (missing.length === 0) return null;
+                  return (
+                    <div className="border-t border-gray-700 pt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-gray-400">컬렉션에서 감지된 변수</span>
+                        <button
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                          onClick={() => {
+                            const newVars = missing.map((key) => ({ id: uuidv4(), key, value: '', enabled: true }));
+                            updateEnvironment({ ...selected, variables: [...selected.variables, ...newVars] });
+                          }}
+                        >
+                          전체 추가
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {missing.map((varName) => (
+                          <button
+                            key={varName}
+                            className="flex items-center gap-1 bg-gray-700 hover:bg-gray-600 text-yellow-400 text-xs px-2 py-0.5 rounded"
+                            onClick={() => {
+                              const newVar = { id: uuidv4(), key: varName, value: '', enabled: true };
+                              updateEnvironment({ ...selected, variables: [...selected.variables, newVar] });
+                            }}
+                          >
+                            <span>{`{{${varName}}}`}</span>
+                            <span className="text-gray-400">+</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="text-gray-500 text-sm mt-4">Select or create an environment</div>
