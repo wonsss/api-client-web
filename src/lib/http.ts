@@ -128,14 +128,39 @@ export async function executeRequest(
     body = interpolate(request.body.content, mergedVars);
   }
 
-  let raw: Response;
   const start = Date.now();
+  let status: number;
+  let statusText: string;
+  let responseHeaders: Record<string, string>;
+  let responseText: string;
+
   try {
-    raw = await fetch(resolvedUrl, {
-      method: request.method,
-      headers: sentHeaders,
-      body: body != null ? body : undefined,
-    });
+    if (import.meta.env.DEV) {
+      const raw = await fetch(resolvedUrl, {
+        method: request.method,
+        headers: sentHeaders,
+        body: body != null ? body : undefined,
+      });
+      status = raw.status;
+      statusText = raw.statusText;
+      responseHeaders = {};
+      raw.headers.forEach((value, key) => { responseHeaders[key] = value; });
+      responseText = await raw.text();
+    } else {
+      const proxyRes = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: resolvedUrl, method: request.method, headers: sentHeaders, body }),
+      });
+      const data = await proxyRes.json() as {
+        status: number; statusText: string; headers: Record<string, string>; body: string; error?: string;
+      };
+      if (data.error) throw new Error(data.error);
+      status = data.status;
+      statusText = data.statusText;
+      responseHeaders = data.headers;
+      responseText = data.body;
+    }
   } catch (e: unknown) {
     return {
       response: {
@@ -154,13 +179,10 @@ export async function executeRequest(
   }
 
   const duration = Date.now() - start;
-  const responseText = await raw.text();
-  const responseHeaders: Record<string, string> = {};
-  raw.headers.forEach((value, key) => { responseHeaders[key] = value; });
 
   const response: ResponseData = {
-    status: raw.status,
-    statusText: raw.statusText,
+    status,
+    statusText,
     headers: responseHeaders,
     body: responseText,
     duration,
